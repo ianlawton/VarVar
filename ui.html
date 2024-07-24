@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Figma Variables Viewer</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background-color: #f4f4f4; }
+  </style>
+</head>
+<body>
+  <h1>Figma Variables</h1>
+  <table id="variables-table">
+    <thead>
+      <tr>
+        <th>Variable Name</th>
+        <th>Mode</th>
+        <th>Values</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Data will be inserted here -->
+    </tbody>
+  </table>
+  <script>
+    onmessage = (event) => {
+      const variables = event.data.pluginMessage;
+      const tbody = document.getElementById('variables-table').querySelector('tbody');
+      tbody.innerHTML = ''; // Clear existing rows
+
+      variables.forEach(variable => {
+        variable.modes.forEach(mode => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${variable.name}</td>
+
+          `;
+          tbody.appendChild(row);
+        });
+      });
+    };
+  </script>
+</body>
+</html>
