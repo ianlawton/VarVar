@@ -1,52 +1,70 @@
 "use strict";
 /// <reference types="@figma/plugin-typings" />
 // Main function to get local variables and send them to the UI
-/* async function main() {
-  const variables = await figma.variables.getLocalVariablesAsync();
-  console.log(variables);
-  const variablesWithModes = variables.map(variable => (
-    {
-    
-    name: variable.name,
-    collectiondId: variable.variableCollectionId,
-    modes: Object.entries(variable.valuesByMode).map(([modeId, values]) => {
-      console.log(modeId)
-      console.log(values)
+/*
 
-     // const mode = figma.variables..getModeById(modeId);
-     // return {
-     //   modeName: mode.name,
-     //   values: values
-     // };
-    })
-  }));
-  */
-async function main() {
+  async function main() {
     const variables = await figma.variables.getLocalVariablesAsync();
+    
     // Fetch mode names using the collection
     const variablesWithModes = await Promise.all(variables.map(async (variable) => {
-        const collection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
-        const modesWithNames = Object.entries(variable.valuesByMode).map(([modeId, values]) => {
-            var _a;
-            {
-                const modeName = ((_a = collection === null || collection === void 0 ? void 0 : collection.modes.find(m => m.modeId === modeId)) === null || _a === void 0 ? void 0 : _a.name) || 'Unknown Mode';
-                return {
-                    modeName,
-                    values: variable.valuesByMode[modeId]
-                };
-            }
-        });
+      const collection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
+      
+      const modesWithNames = Object.entries(variable.valuesByMode).map(([modeId, values]) => { {
+        const modeName = collection?.modes.find(m => m.modeId === modeId)?.name || 'Unknown Mode';
         return {
-            name: variable.name,
-            modes: modesWithNames
+          modeName,
+          values: variable.valuesByMode[modeId]
         };
+      }});
+  
+      return {
+        name: variable.name,
+        modes: modesWithNames
+      };
     }));
+  
     figma.ui.postMessage(variablesWithModes);
     figma.ui.resize(500, 400); // Adjust size as needed
-}
+  }
+
+  */
 // figma.ui.postMessage(variablesWithModes);
 // figma.ui.resize(500, 400); // Adjust size as needed
 // }
+// Main function to get local variables and send them to the UI
+async function main() {
+    const variables = await figma.variables.getLocalVariablesAsync();
+    const variablesWithModes = await Promise.all(variables.map(async (variable) => {
+        const collection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
+        const modesWithNamesAndValues = await Promise.all(Object.entries(variable.valuesByMode).map(async ([modeId, mValues]) => {
+            var _a;
+            const modeName = ((_a = collection === null || collection === void 0 ? void 0 : collection.modes.find(m => m.modeId === modeId)) === null || _a === void 0 ? void 0 : _a.name) || 'Unknown Mode';
+            const values = variable.valuesByMode[modeId];
+            // Resolve aliases
+            const resolvedValues = await Promise.all(Object.entries(values).map(async ([key, value]) => {
+                if (value.type === 'VARIABLE_ALIAS') {
+                    const aliasedVariable = await figma.variables.getVariableByIdAsync(value.id);
+                    return [key, (aliasedVariable === null || aliasedVariable === void 0 ? void 0 : aliasedVariable.valuesByMode[value.modeId]) || value];
+                }
+                console.log('In resoved values');
+                console.log(value);
+                return [key, value];
+            }));
+            console.log('Skipped');
+            return {
+                modeName,
+                values: Object.fromEntries(resolvedValues)
+            };
+        }));
+        return {
+            name: variable.name,
+            modes: modesWithNamesAndValues
+        };
+    }));
+    figma.ui.postMessage(variablesWithModes);
+    figma.ui.resize(600, 500); // Adjust size as needed
+}
 // Run the main function and set up the UI
 figma.on('run', main);
 // Load the UI
